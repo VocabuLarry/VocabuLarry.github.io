@@ -1,3 +1,961 @@
-<h1>Hello.</h1>
-<p>This is an experimental website</p>
-<button type="button" onclick="alert('Hello')">Hello</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AP Gov Monster Vocab</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card-front: #13131c;
+    --card-back: #0d1a0d;
+    --border: #2a2a3a;
+    --accent: #39ff6a;
+    --accent2: #ff3939;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --tag-bg: #1a1a2a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  header {
+    padding: 32px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.2rem;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(57, 255, 106, 0.3);
+  }
+
+  .logo span { color: var(--accent2); }
+
+  .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .controls {
+    padding: 20px 40px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-right: 8px;
+  }
+
+  .stat b { color: var(--accent); }
+
+  select, input[type="text"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  select:hover, input:hover { border-color: var(--accent); }
+  select:focus, input:focus { border-color: var(--accent); }
+
+  input[type="text"] { width: 200px; }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+
+  .btn:hover { background: var(--accent); color: #000; }
+
+  .btn.danger { border-color: var(--accent2); color: var(--accent2); }
+  .btn.danger:hover { background: var(--accent2); color: #fff; }
+
+  /* MAIN STUDY AREA */
+  .study-area {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    min-height: calc(100vh - 160px);
+  }
+
+  .study-area.active { display: flex; }
+
+  .progress-bar-wrap {
+    width: 100%;
+    max-width: 700px;
+    margin-bottom: 12px;
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* FLASHCARD */
+  .card-scene {
+    width: 100%;
+    max-width: 700px;
+    height: 360px;
+    perspective: 1200px;
+    cursor: pointer;
+    margin-bottom: 24px;
+  }
+
+  .card-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.4, 0.2, 0.2, 1);
+  }
+
+  .card-inner.flipped { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .card-front {
+    background: var(--card-front);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+  }
+
+  .card-back {
+    background: var(--card-back);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent2);
+    transform: rotateY(180deg);
+  }
+
+  .card-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .card-back .card-label { color: var(--accent2); opacity: 0.7; }
+
+  .card-term {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.6rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .card-category {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+  }
+
+  .card-hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .card-definition {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--text);
+    font-weight: 300;
+    max-width: 560px;
+  }
+
+  /* ANSWER BUTTONS */
+  .answer-btns {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .answer-btn {
+    padding: 12px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    border-radius: 5px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+    border: 1px solid;
+  }
+
+  .answer-btn.correct {
+    background: transparent;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .answer-btn.correct:hover { background: var(--accent); color: #000; font-weight: 600; }
+
+  .answer-btn.wrong {
+    background: transparent;
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  .answer-btn.wrong:hover { background: var(--accent2); color: #fff; }
+
+  .nav-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  /* GRID VIEW */
+  .grid-area {
+    display: none;
+    padding: 30px 40px;
+  }
+
+  .grid-area.active { display: block; }
+
+  .grid-search {
+    margin-bottom: 20px;
+  }
+
+  .vocab-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+  }
+
+  .grid-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+
+  .grid-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .grid-card.known { border-left: 3px solid var(--accent); }
+  .grid-card.unknown { border-left: 3px solid var(--accent2); }
+
+  .grid-term {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .grid-def {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .grid-cat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 6px;
+    opacity: 0.6;
+  }
+
+  /* SESSION COMPLETE */
+  .complete-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    min-height: calc(100vh - 160px);
+  }
+
+  .complete-screen.active { display: flex; }
+
+  .complete-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 5rem;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(57,255,106,0.4);
+    margin-bottom: 12px;
+  }
+
+  .complete-stats {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1rem;
+    color: var(--muted);
+    margin-bottom: 30px;
+    line-height: 2;
+  }
+
+  .complete-stats b { color: var(--text); }
+
+  /* TAB NAV */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+  }
+
+  .tab {
+    padding: 12px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MODE TOGGLE */
+  .mode-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .mode-btn {
+    padding: 8px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .mode-btn:hover { color: var(--text); }
+
+  .mode-btn.active {
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
+  }
+
+  .mode-btn.active.def-mode {
+    background: var(--accent2);
+    color: #fff;
+  }
+
+  .mode-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  /* Definition-first mode: swap accent colours on card faces */
+  body.def-first .card-front {
+    background: var(--card-back);
+    border-top-color: var(--accent2);
+  }
+
+  body.def-first .card-back {
+    background: var(--card-front);
+    border-top-color: var(--accent);
+  }
+
+  body.def-first .card-front .card-label { color: var(--accent2); opacity: 0.7; }
+  body.def-first .card-back  .card-label { color: var(--muted); opacity: 1; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-scene { animation: slideIn 0.3s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">AP <span>GOV</span></div>
+  </div>
+  <div>
+    <div class="subtitle">Monster Vocab Flashcards</div>
+    <div class="subtitle" id="totalCount">— terms loaded</div>
+  </div>
+</header>
+
+<div class="tab-nav">
+  <button class="tab active" onclick="switchTab('study')">Study Mode</button>
+  <button class="tab" onclick="switchTab('grid')">Browse All</button>
+</div>
+
+<div class="controls">
+  <span class="stat">Category: </span>
+  <select id="categoryFilter" onchange="applyFilters()">
+    <option value="all">All Categories</option>
+  </select>
+  <select id="deckFilter" onchange="applyFilters()">
+    <option value="all">All Cards</option>
+    <option value="unknown">Need Review Only</option>
+    <option value="known">Known Only</option>
+  </select>
+  <button class="btn" onclick="startSession()">▶ Start / Restart</button>
+  <button class="btn danger" onclick="resetProgress()">Reset Progress</button>
+  <span class="stat" id="knownStat">Known: <b>0</b></span>
+  <div class="mode-toggle-wrap" title="Toggle what the front of the card shows">
+    <button class="mode-btn active" id="modeTermBtn" onclick="setMode('term')">Term → Definition</button>
+    <div class="mode-divider"></div>
+    <button class="mode-btn def-mode" id="modeDefBtn" onclick="setMode('def')">Definition → Term</button>
+  </div>
+</div>
+
+<!-- STUDY MODE -->
+<div class="study-area active" id="studyArea">
+  <div class="progress-bar-wrap">
+    <div class="progress-info">
+      <span id="progressText">Card 0 of 0</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="card-scene" id="cardScene" onclick="flipCard()">
+    <div class="card-inner" id="cardInner">
+      <div class="card-face card-front">
+        <div class="card-label" id="frontLabel">Term — click to reveal</div>
+        <div class="card-term" id="frontTerm">—</div>
+        <div class="card-category" id="frontCat">—</div>
+        <div class="card-definition" id="frontDef" style="display:none">—</div>
+        <div class="card-hint" id="frontHint">↩ click to see definition</div>
+      </div>
+      <div class="card-face card-back">
+        <div class="card-label" id="backLabel">Definition</div>
+        <div class="card-definition" id="backDef">—</div>
+        <div class="card-term" id="backTerm" style="display:none">—</div>
+        <div class="card-category" id="backCat" style="display:none">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="answer-btns" id="answerBtns" style="display:none">
+    <button class="answer-btn correct" onclick="markCard(true)">✓ Got It</button>
+    <button class="answer-btn wrong" onclick="markCard(false)">✗ Still Learning</button>
+  </div>
+
+  <div class="nav-row">
+    <button class="btn" onclick="prevCard()">← Prev</button>
+    <button class="btn" onclick="nextCard()">Next →</button>
+    <button class="btn" onclick="shuffleDeck()">⇄ Shuffle</button>
+  </div>
+</div>
+
+<!-- COMPLETE SCREEN -->
+<div class="complete-screen" id="completeScreen">
+  <div class="complete-title">Session Done</div>
+  <div class="complete-stats" id="completeStats"></div>
+  <div style="display:flex;gap:12px">
+    <button class="btn" onclick="reviewUnknown()">Review Unknowns</button>
+    <button class="btn" onclick="startSession()">Full Restart</button>
+  </div>
+</div>
+
+<!-- GRID VIEW -->
+<div class="grid-area" id="gridArea">
+  <div class="grid-search">
+    <input type="text" id="searchInput" placeholder="Search terms..." oninput="renderGrid()">
+  </div>
+  <div class="vocab-grid" id="vocabGrid"></div>
+</div>
+
+<script>
+const vocab = [
+  // The Constitution and Federalism
+  {term:"Federalism",cat:"Constitution & Federalism",def:"A system of government where power is divided between a central (national) government and regional (state) governments, each with their own spheres of authority."},
+  {term:"Dual Federalism",cat:"Constitution & Federalism",def:"A model of federalism (sometimes called 'layer cake' federalism) in which national and state governments operate independently in their own separate domains with clear divisions of power."},
+  {term:"Cooperative Federalism",cat:"Constitution & Federalism",def:"A model of federalism ('marble cake') where national and state governments share functions and collaborate to solve common problems rather than operating in separate spheres."},
+  {term:"Fiscal Federalism",cat:"Constitution & Federalism",def:"The system by which the federal government uses grants and financial transfers to influence state and local governments, often attaching conditions to funding."},
+  {term:"Block Grants",cat:"Constitution & Federalism",def:"Federal grants given to states with broad, flexible guidelines on how the money can be spent, giving states greater discretion compared to categorical grants."},
+  {term:"Unfunded Mandate",cat:"Constitution & Federalism",def:"A federal requirement imposed on state or local governments that must be carried out without federal funding to cover the costs."},
+  {term:"Categorical Grants",cat:"Constitution & Federalism",def:"Federal grants given to states for specific, narrowly defined purposes with strict conditions on how the money must be used."},
+  {term:"Devolution",cat:"Constitution & Federalism",def:"The transfer of powers and responsibilities from the federal government back to state and local governments, reducing central authority."},
+  {term:"Federalist #10",cat:"Constitution & Federalism",def:"James Madison's essay arguing that a large republic with many factions (interest groups) is the best guard against tyranny, since no single faction can dominate; supports the Constitution's federal structure."},
+  {term:"Participatory Democracy",cat:"Constitution & Federalism",def:"A model of democracy emphasizing broad, direct participation of citizens in political decisions rather than relying primarily on elected representatives."},
+  {term:"Pluralist Democracy",cat:"Constitution & Federalism",def:"A model of democracy in which multiple competing interest groups vie for influence, and government policy results from the negotiation and compromise among these groups."},
+  {term:"Elite Democracy",cat:"Constitution & Federalism",def:"A model of democracy in which a small, educated, or wealthy elite make most of the major political decisions, with limited direct participation by average citizens."},
+  {term:"Separation of Powers",cat:"Constitution & Federalism",def:"The constitutional division of government authority into three distinct branches—legislative, executive, and judicial—each with separate and independent powers."},
+  {term:"Checks and Balances",cat:"Constitution & Federalism",def:"A system in which each branch of government has the ability to limit or oversee the actions of the other branches, preventing any single branch from becoming too powerful."},
+  {term:"Exclusive Powers",cat:"Constitution & Federalism",def:"Powers that belong solely to either the federal government (e.g., coin money, declare war) or the state governments, not shared between the two."},
+  {term:"Concurrent Powers",cat:"Constitution & Federalism",def:"Powers held simultaneously by both the federal and state governments, such as the power to tax, build roads, and establish courts."},
+  {term:"Shays' Rebellion",cat:"Constitution & Federalism",def:"A 1786–87 armed uprising of Massachusetts farmers protesting debt and tax policies; revealed the weakness of the Articles of Confederation and helped motivate the Constitutional Convention."},
+  {term:"Great Compromise",cat:"Constitution & Federalism",def:"The 1787 agreement at the Constitutional Convention that created a bicameral Congress—a Senate with equal representation for each state and a House with representation proportional to population."},
+  {term:"Necessary and Proper Clause",cat:"Constitution & Federalism",def:"Article I, Section 8 clause granting Congress the power to make all laws 'necessary and proper' for carrying out its enumerated powers; also called the Elastic Clause because it stretches congressional authority."},
+  {term:"Full Faith and Credit Clause",cat:"Constitution & Federalism",def:"Article IV clause requiring each state to recognize and honor the public acts, records, and judicial proceedings of every other state."},
+  {term:"Rule of Law",cat:"Constitution & Federalism",def:"The principle that all individuals and institutions, including the government, are accountable to laws that are publicly promulgated, equally enforced, and independently adjudicated."},
+  {term:"Supremacy Clause",cat:"Constitution & Federalism",def:"Article VI clause establishing that the Constitution, federal laws, and treaties are the 'supreme law of the land,' taking precedence over conflicting state laws."},
+
+  // Political Beliefs and Behaviors
+  {term:"Demographic",cat:"Political Beliefs & Behaviors",def:"Statistical characteristics of a population (age, race, gender, income, education, etc.) used to analyze and predict political attitudes and behavior."},
+  {term:"Political Socialization",cat:"Political Beliefs & Behaviors",def:"The process by which individuals develop their political beliefs and values, primarily through agents such as family, school, peers, media, and religious institutions."},
+  {term:"Political Culture",cat:"Political Beliefs & Behaviors",def:"The shared values, beliefs, and norms about government and politics that characterize a society; in the U.S., key elements include liberty, equality, democracy, and civic participation."},
+  {term:"Political Efficacy",cat:"Political Beliefs & Behaviors",def:"An individual's belief that their political participation can make a difference; internal efficacy is confidence in one's own knowledge; external efficacy is belief that the government responds to citizens."},
+  {term:"Gender Gap",cat:"Political Beliefs & Behaviors",def:"The consistent difference in political opinions and voting behavior between men and women; in the U.S., women tend to be more supportive of the Democratic Party."},
+  {term:"Marriage Gap",cat:"Political Beliefs & Behaviors",def:"The political difference between married and unmarried individuals; married people tend to lean more conservative, while single people tend to lean more liberal."},
+  {term:"Sampling Error",cat:"Political Beliefs & Behaviors",def:"The statistical margin of error in a poll that results from surveying a sample rather than the entire population; expressed as ± a percentage."},
+  {term:"Exit Polls",cat:"Political Beliefs & Behaviors",def:"Surveys conducted outside polling places on Election Day asking voters how they voted, used to predict election outcomes and analyze voter behavior."},
+  {term:"Public Opinion Polls",cat:"Political Beliefs & Behaviors",def:"Surveys designed to measure the attitudes or opinions of a representative sample of a population on political issues, candidates, or government performance."},
+  {term:"Issue Network (Iron Triangle)",cat:"Political Beliefs & Behaviors",def:"The stable, mutually beneficial relationship among a congressional committee, a federal agency, and an interest group that dominates policymaking in a specific area. Issue networks are broader, less stable webs of actors involved in policy."},
+  {term:"Party Polarization",cat:"Political Beliefs & Behaviors",def:"The increasing ideological distance between the Republican and Democratic parties, with each party becoming more extreme and less willing to compromise with the other."},
+  {term:"Lobbying",cat:"Political Beliefs & Behaviors",def:"The act of attempting to influence government officials (legislators, executives, regulators) to support policies favorable to a particular group or cause."},
+  {term:"Grassroots Lobbying",cat:"Political Beliefs & Behaviors",def:"Influencing policy by mobilizing ordinary citizens to contact their representatives or participate in political action, generating genuine public pressure."},
+  {term:"Astroturf Lobbying",cat:"Political Beliefs & Behaviors",def:"A form of lobbying that creates the appearance of grassroots citizen support but is actually organized and funded by corporations, political groups, or other special interests—fake 'grassroots.'"},
+
+  // Elections
+  {term:"Single-Member Districts",cat:"Elections",def:"Electoral districts in which only one representative is chosen, typically by a plurality (first-past-the-post) system; used for all U.S. House seats."},
+  {term:"Redistricting",cat:"Elections",def:"The process of redrawing congressional and state legislative district boundaries, conducted every ten years after the census."},
+  {term:"Proportional Representation",cat:"Elections",def:"An electoral system in which parties receive seats in proportion to their share of the vote, used in many democracies but not for U.S. federal elections."},
+  {term:"Gerrymandering",cat:"Elections",def:"The manipulation of electoral district boundaries for political advantage, either to favor a party (partisan gerrymandering) or to dilute minority voting power (racial gerrymandering)."},
+  {term:"Party Line Voting",cat:"Elections",def:"When voters or legislators cast ballots strictly according to their party affiliation rather than evaluating each candidate or issue independently."},
+  {term:"Divided Government",cat:"Elections",def:"A situation in which one party controls the presidency while the opposing party controls one or both houses of Congress."},
+  {term:"General Elections",cat:"Elections",def:"Elections held to choose among the final candidates from all parties, usually in November; the final step in selecting officeholders."},
+  {term:"Midterm Elections",cat:"Elections",def:"Elections held in the middle of a presidential term (every two years), in which all House seats and one-third of Senate seats are contested; typically results in losses for the president's party."},
+  {term:"Political Parties",cat:"Elections",def:"Organizations that seek to gain political power by nominating candidates, winning elections, and controlling government; the U.S. has a two-party system dominated by Republicans and Democrats."},
+  {term:"Interest Groups",cat:"Elections",def:"Organizations of people with shared policy goals who try to influence government decision-making through lobbying, campaign contributions, litigation, and public advocacy."},
+  {term:"Incumbency Advantage",cat:"Elections",def:"The significant electoral advantage that sitting officeholders have over challengers, due to name recognition, fundraising ability, use of official resources (franking), and casework."},
+  {term:"Party Caucus",cat:"Elections",def:"A meeting of party members in a legislature to discuss strategy and elect leaders; also an alternative to a primary election where voters gather to choose delegates for party nominees."},
+  {term:"Linkage Institutions",cat:"Elections",def:"Structures that connect citizens to the government and help translate public preferences into policy, including political parties, elections, interest groups, and media."},
+  {term:"Policy Agenda",cat:"Elections",def:"The set of issues that the government and public consider most important and worthy of action at any given time."},
+  {term:"Agenda Setting",cat:"Elections",def:"The power of media, political leaders, and interest groups to determine which issues receive public and governmental attention."},
+  {term:"Closed Primary",cat:"Elections",def:"A primary election in which only registered members of a party can vote to select that party's candidates."},
+  {term:"Independent Expenditures",cat:"Elections",def:"Money spent on political advertising or campaigns by individuals or groups that is not coordinated with or donated directly to a candidate's campaign; protected as free speech by Citizens United."},
+  {term:"Open Primary",cat:"Elections",def:"A primary election in which any registered voter can participate, regardless of party affiliation."},
+  {term:"PAC (Political Action Committee)",cat:"Elections",def:"An organization that raises and spends money to elect or defeat political candidates; subject to contribution limits and disclosure requirements."},
+  {term:"Political Ideology",cat:"Elections",def:"A coherent set of beliefs and values about the role of government, individual rights, and public policy that guides political preferences and behavior."},
+  {term:"Prospective Voting",cat:"Elections",def:"Voting based on expectations about a candidate's future performance and promises, choosing the candidate whose platform best matches the voter's preferences."},
+  {term:"Rational Choice Voting",cat:"Elections",def:"A theory of voting in which individuals make decisions based on a cost-benefit analysis—supporting candidates whose policies maximize their personal interests."},
+  {term:"Retrospective Voting",cat:"Elections",def:"Voting based on a judgment of an incumbent's past performance; voters reward or punish officials based on how things have gone during their term."},
+  {term:"Super PAC",cat:"Elections",def:"An independent expenditure organization that can raise and spend unlimited amounts of money to support or oppose candidates, but cannot legally coordinate directly with campaigns; created after Citizens United v. FEC (2010)."},
+
+  // Congress
+  {term:"Trustee",cat:"Congress",def:"A model of legislative representation in which members of Congress use their own judgment and conscience to decide how to vote, rather than simply following constituent wishes."},
+  {term:"Delegate",cat:"Congress",def:"A model of legislative representation in which members of Congress act as direct representatives of their constituents' preferences, voting as their district wants regardless of personal opinion."},
+  {term:"Discharge Petition",cat:"Congress",def:"A procedure allowing a majority of House members (218) to force a bill out of committee and onto the floor for a vote when a committee refuses to act on it."},
+  {term:"Enumerated/Expressed Powers",cat:"Congress",def:"The specific powers explicitly granted to Congress in Article I, Section 8 of the Constitution, such as the power to tax, regulate commerce, declare war, and coin money."},
+  {term:"Implied Powers",cat:"Congress",def:"Congressional powers not explicitly listed in the Constitution but inferred from the Necessary and Proper Clause; used to justify actions like creating the national bank."},
+  {term:"Bipartisan",cat:"Congress",def:"Involving cooperation and agreement between the two major political parties; legislation or actions supported by both Republicans and Democrats."},
+  {term:"Republicanism",cat:"Congress",def:"A system of government in which citizens elect representatives to make decisions on their behalf rather than governing directly; a foundational principle of the U.S. constitutional system."},
+  {term:"Congressional Caucus",cat:"Congress",def:"An informal group of members of Congress who share similar interests, backgrounds, or goals and meet to coordinate on legislation and policy (e.g., the Black Caucus, the Tea Party Caucus)."},
+  {term:"Franking Privilege",cat:"Congress",def:"The benefit allowing members of Congress to send official mail to constituents free of charge using their signature instead of a stamp; contributes to incumbency advantage."},
+  {term:"Pork Barrel",cat:"Congress",def:"Government spending for projects that primarily benefit a particular congressional district and are intended to help the incumbent's reelection rather than the broader public good."},
+  {term:"Filibuster",cat:"Congress",def:"A Senate tactic in which a senator speaks indefinitely or otherwise delays proceedings to prevent a vote on legislation; can be ended by cloture (60 votes)."},
+  {term:"Casework",cat:"Congress",def:"The work that members of Congress and their staff do to help individual constituents deal with federal agencies and government problems; builds voter loyalty."},
+  {term:"Oversight",cat:"Congress",def:"The power of Congress to monitor, review, and investigate the actions of the executive branch and federal agencies to ensure laws are faithfully executed."},
+  {term:"Motion for Cloture",cat:"Congress",def:"A Senate procedure requiring 60 votes to end a filibuster and force a vote on legislation."},
+  {term:"Incumbent",cat:"Congress",def:"A current officeholder running for reelection; incumbents enjoy significant advantages over challengers in fundraising, name recognition, and access to government resources."},
+  {term:"Logrolling",cat:"Congress",def:"The legislative practice of trading votes—a member of Congress agrees to support a colleague's bill in exchange for that colleague's support on another bill."},
+  {term:"Reapportionment",cat:"Congress",def:"The reallocation of House seats among the states based on population changes recorded in the census, conducted every ten years."},
+  {term:"House Ways and Means Committee",cat:"Congress",def:"The powerful House committee with jurisdiction over tax legislation, tariffs, trade, Social Security, Medicare, and other revenue-related legislation."},
+  {term:"Conference Committee",cat:"Congress",def:"A temporary joint committee of House and Senate members formed to reconcile differences between the two chambers' versions of a bill."},
+  {term:"Standing Committee",cat:"Congress",def:"A permanent legislative committee in Congress that specializes in a particular area of policy (e.g., Armed Services, Judiciary) and handles most of the legislative work."},
+
+  // The Presidency
+  {term:"Inherent Powers",cat:"The Presidency",def:"Powers claimed by the president that are not explicitly stated in the Constitution but are considered necessary to fulfill the duties of the office, especially in foreign affairs and national security."},
+  {term:"White House Staff",cat:"The Presidency",def:"The president's personal advisers and administrative assistants who work directly in the White House; they are not confirmed by the Senate and are directly loyal to the president."},
+  {term:"Executive Order",cat:"The Presidency",def:"A directive issued by the president that has the force of law and manages the operations of the federal government; does not require congressional approval but can be challenged in court."},
+  {term:"Executive Agreement",cat:"The Presidency",def:"An agreement between the president and a foreign government that has the force of a treaty but does not require Senate ratification; used to bypass the 2/3 Senate approval requirement."},
+  {term:"Pocket Veto",cat:"The Presidency",def:"An indirect veto that occurs when a president takes no action on a bill within 10 days and Congress adjourns; the bill does not become law without the president's signature."},
+  {term:"Signing Statements",cat:"The Presidency",def:"Written statements issued by the president when signing a bill into law, explaining how the executive branch intends to interpret or implement the legislation."},
+  {term:"Patronage System",cat:"The Presidency",def:"A system of awarding government jobs to political supporters and allies ('spoils system'); largely replaced by the merit-based civil service system after the Pendleton Act (1883)."},
+  {term:"Lame Duck Period",cat:"The Presidency",def:"The period after an election and before a new president takes office during which the outgoing president has reduced political power and influence."},
+  {term:"Office of Management and Budget (OMB)",cat:"The Presidency",def:"The executive office agency responsible for preparing the federal budget and overseeing its implementation; ensures federal agencies comply with presidential policy."},
+  {term:"National Security Council",cat:"The Presidency",def:"A key advisory body in the executive branch that coordinates foreign policy and national security decisions; members include the president, vice president, secretary of state, and secretary of defense."},
+  {term:"Civil Service System / Merit System Reform",cat:"The Presidency",def:"A system for hiring and promoting federal government employees based on qualifications and performance rather than political connections; established by the Pendleton Civil Service Act (1883)."},
+
+  // The Courts
+  {term:"Amicus Curiae",cat:"The Courts",def:"Latin for 'friend of the court'; a brief filed by a party not directly involved in a case to offer information or arguments that may help the court make its decision."},
+  {term:"Stare Decisis",cat:"The Courts",def:"Latin for 'let the decision stand'; the legal principle that courts should follow precedent set by previous decisions to ensure consistency and predictability in the law."},
+  {term:"Original Intent",cat:"The Courts",def:"A judicial philosophy holding that the Constitution should be interpreted based on the original meaning or intent of those who wrote and ratified it; associated with judicial restraint/originalism."},
+  {term:"Judicial Review",cat:"The Courts",def:"The power of the federal courts, especially the Supreme Court, to declare laws or executive actions unconstitutional; established by Marbury v. Madison (1803)."},
+  {term:"Judicial Activism",cat:"The Courts",def:"A judicial philosophy in which judges are willing to use their authority to overturn precedents and strike down laws, often to protect individual rights or adapt the Constitution to modern circumstances."},
+  {term:"Writ of Certiorari",cat:"The Courts",def:"An order by the Supreme Court to a lower court to send up the record of a case for review; the Court grants 'cert' to about 1-2% of petitions (the 'rule of four' requires 4 justices to agree)."},
+  {term:"Litigation",cat:"The Courts",def:"The process of resolving disputes through the court system; interest groups often use strategic litigation to achieve policy goals when legislative avenues are blocked."},
+
+  // The Budget
+  {term:"Uncontrollable Spending",cat:"The Budget",def:"Federal spending that is determined by existing law rather than the annual appropriations process; primarily consists of entitlement programs and interest on the national debt."},
+  {term:"Entitlement Programs",cat:"The Budget",def:"Government programs that provide benefits to all individuals who meet eligibility requirements set by law, such as Social Security, Medicare, and Medicaid; not subject to annual appropriations."},
+  {term:"Mandatory Spending",cat:"The Budget",def:"Federal spending required by existing law on entitlement programs and debt interest; makes up the majority of the federal budget and cannot be easily cut in annual appropriations."},
+  {term:"Monetary Policy",cat:"The Budget",def:"The regulation of the money supply and interest rates by the Federal Reserve (Fed) to control inflation and stabilize the economy; independent of Congress and the president."},
+  {term:"Fiscal Policy",cat:"The Budget",def:"The use of government taxing and spending to influence the economy; set by Congress and the president through the budget process."},
+  {term:"Supply-Side Economics",cat:"The Budget",def:"An economic theory (associated with conservatives/Republicans) arguing that cutting taxes—especially for businesses and high earners—stimulates investment, economic growth, and ultimately benefits everyone ('trickle-down')."},
+  {term:"Keynesian Economics",cat:"The Budget",def:"An economic theory arguing that the government should increase spending and reduce taxes during recessions to stimulate demand and pull the economy out of downturns."},
+
+  // Civil Rights and Liberties
+  {term:"Civil Rights",cat:"Civil Rights & Liberties",def:"The positive actions government must take to protect citizens from discriminatory treatment based on characteristics like race, gender, or religion; concerned with equal treatment under the law."},
+  {term:"Civil Liberties",cat:"Civil Rights & Liberties",def:"Constitutional protections that limit government action and protect individual freedoms, such as freedom of speech, religion, and the right to due process; found primarily in the Bill of Rights."},
+  {term:"Selective Incorporation",cat:"Civil Rights & Liberties",def:"The Supreme Court's gradual process of applying most protections of the Bill of Rights to the states through the 14th Amendment's Due Process Clause, on a case-by-case basis."},
+  {term:"Suffrage",cat:"Civil Rights & Liberties",def:"The right to vote; expanded over U.S. history to include Black men (15th Amendment, 1870), women (19th Amendment, 1920), and 18-year-olds (26th Amendment, 1971)."},
+  {term:"Affirmative Action",cat:"Civil Rights & Liberties",def:"Policies that take positive steps to increase the representation of minority groups in areas like education and employment to address historical discrimination; controversial and subject to Supreme Court review."},
+  {term:"Bill of Rights",cat:"Civil Rights & Liberties",def:"The first ten amendments to the Constitution, ratified in 1791, guaranteeing fundamental individual rights and freedoms and limiting government power."},
+  {term:"Free Exercise Clause",cat:"Civil Rights & Liberties",def:"The First Amendment clause that prohibits government from interfering with individuals' right to practice their religion freely."},
+  {term:"Establishment Clause",cat:"Civil Rights & Liberties",def:"The First Amendment clause that prohibits government from establishing an official religion or favoring one religion over others ('separation of church and state')."},
+  {term:"Exclusionary Rule",cat:"Civil Rights & Liberties",def:"A judicial doctrine established in Mapp v. Ohio (1961) that bars evidence obtained through illegal searches or seizures (violating the 4th Amendment) from being used in court."},
+  {term:"Defamation",cat:"Civil Rights & Liberties",def:"False statements of fact presented as true that cause harm to a person's reputation; includes libel (written) and slander (spoken). Not protected by the First Amendment."},
+  {term:"Equal Protection",cat:"Civil Rights & Liberties",def:"The 14th Amendment clause requiring states to provide all persons within their jurisdiction the same legal protections; the basis for challenging discriminatory laws."},
+  {term:"Due Process",cat:"Civil Rights & Liberties",def:"The constitutional principle (5th and 14th Amendments) that the government cannot deprive individuals of life, liberty, or property without fair legal procedures; includes procedural and substantive due process."},
+];
+
+// State
+let deck = [...vocab];
+let current = 0;
+let isFlipped = false;
+let progress = {};
+let sessionCorrect = 0;
+let sessionTotal = 0;
+let cardMode = 'term'; // 'term' = Term→Def (default) | 'def' = Def→Term
+
+// Init progress from localStorage
+try { progress = JSON.parse(localStorage.getItem('apgov_progress') || '{}'); } catch(e) {}
+
+function saveProgress() {
+  try { localStorage.setItem('apgov_progress', JSON.stringify(progress)); } catch(e) {}
+}
+
+function getCategories() {
+  return [...new Set(vocab.map(v => v.cat))];
+}
+
+function populateFilters() {
+  const sel = document.getElementById('categoryFilter');
+  getCategories().forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    sel.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const cat = document.getElementById('categoryFilter').value;
+  const deck_filter = document.getElementById('deckFilter').value;
+  deck = vocab.filter(v => {
+    if (cat !== 'all' && v.cat !== cat) return false;
+    if (deck_filter === 'unknown') return !progress[v.term];
+    if (deck_filter === 'known') return progress[v.term];
+    return true;
+  });
+  current = 0;
+  document.getElementById('totalCount').textContent = `— ${deck.length} terms loaded`;
+  renderCard();
+}
+
+function updateKnownStat() {
+  const known = vocab.filter(v => progress[v.term]).length;
+  document.getElementById('knownStat').innerHTML = `Known: <b>${known}/${vocab.length}</b>`;
+}
+
+function renderCard() {
+  if (deck.length === 0) {
+    document.getElementById('frontTerm').textContent = 'No cards match';
+    document.getElementById('frontCat').textContent = '—';
+    document.getElementById('frontDef').textContent = 'Try changing filters.';
+    document.getElementById('backDef').textContent = 'Try changing filters.';
+    document.getElementById('backTerm').textContent = '—';
+    return;
+  }
+  const card = deck[current];
+
+  if (cardMode === 'term') {
+    // Front: term + category | Back: definition
+    document.getElementById('frontLabel').textContent = 'Term — click to reveal';
+    document.getElementById('frontTerm').textContent = card.term;
+    document.getElementById('frontTerm').style.display = '';
+    document.getElementById('frontCat').textContent = card.cat;
+    document.getElementById('frontCat').style.display = '';
+    document.getElementById('frontDef').style.display = 'none';
+    document.getElementById('frontHint').textContent = '↩ click to see definition';
+
+    document.getElementById('backLabel').textContent = 'Definition';
+    document.getElementById('backDef').textContent = card.def;
+    document.getElementById('backDef').style.display = '';
+    document.getElementById('backTerm').style.display = 'none';
+    document.getElementById('backCat').style.display = 'none';
+  } else {
+    // Front: definition | Back: term + category
+    document.getElementById('frontLabel').textContent = 'Definition — click to reveal';
+    document.getElementById('frontDef').textContent = card.def;
+    document.getElementById('frontDef').style.display = '';
+    document.getElementById('frontTerm').style.display = 'none';
+    document.getElementById('frontCat').style.display = 'none';
+    document.getElementById('frontHint').textContent = '↩ click to see the term';
+
+    document.getElementById('backLabel').textContent = 'Term';
+    document.getElementById('backDef').style.display = 'none';
+    document.getElementById('backTerm').textContent = card.term;
+    document.getElementById('backTerm').style.display = '';
+    document.getElementById('backCat').textContent = card.cat;
+    document.getElementById('backCat').style.display = '';
+  }
+
+  // reset flip
+  isFlipped = false;
+  const inner = document.getElementById('cardInner');
+  inner.classList.remove('flipped');
+  document.getElementById('answerBtns').style.display = 'none';
+
+  // re-trigger animation
+  const scene = document.getElementById('cardScene');
+  scene.style.animation = 'none';
+  scene.offsetHeight;
+  scene.style.animation = '';
+
+  updateProgress();
+  updateKnownStat();
+}
+
+function setMode(mode) {
+  cardMode = mode;
+  const termBtn = document.getElementById('modeTermBtn');
+  const defBtn  = document.getElementById('modeDefBtn');
+  if (mode === 'term') {
+    termBtn.classList.add('active');
+    defBtn.classList.remove('active');
+    document.body.classList.remove('def-first');
+  } else {
+    defBtn.classList.add('active');
+    termBtn.classList.remove('active');
+    document.body.classList.add('def-first');
+  }
+  renderCard();
+}
+
+function updateProgress() {
+  const pct = deck.length ? Math.round((current / deck.length) * 100) : 0;
+  document.getElementById('progressText').textContent = `Card ${current + 1} of ${deck.length}`;
+  document.getElementById('progressPct').textContent = `${pct}%`;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('cardInner').classList.toggle('flipped', isFlipped);
+  if (isFlipped) {
+    document.getElementById('answerBtns').style.display = 'flex';
+  }
+}
+
+function markCard(correct) {
+  const card = deck[current];
+  progress[card.term] = correct;
+  if (correct) sessionCorrect++;
+  sessionTotal++;
+  saveProgress();
+  nextCard();
+}
+
+function nextCard() {
+  if (current < deck.length - 1) {
+    current++;
+    renderCard();
+  } else {
+    showComplete();
+  }
+}
+
+function prevCard() {
+  if (current > 0) { current--; renderCard(); }
+}
+
+function shuffleDeck() {
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  current = 0;
+  renderCard();
+}
+
+function startSession() {
+  sessionCorrect = 0;
+  sessionTotal = 0;
+  applyFilters();
+  document.getElementById('completeScreen').classList.remove('active');
+  document.getElementById('studyArea').classList.add('active');
+}
+
+function showComplete() {
+  document.getElementById('studyArea').classList.remove('active');
+  const screen = document.getElementById('completeScreen');
+  screen.classList.add('active');
+  const known = vocab.filter(v => progress[v.term]).length;
+  document.getElementById('completeStats').innerHTML =
+    `Session: <b>${sessionCorrect}</b> correct / <b>${sessionTotal}</b> reviewed<br>
+     Total mastered: <b>${known}</b> / <b>${vocab.length}</b>`;
+}
+
+function reviewUnknown() {
+  document.getElementById('deckFilter').value = 'unknown';
+  startSession();
+}
+
+function resetProgress() {
+  if (!confirm('Reset all progress?')) return;
+  progress = {};
+  saveProgress();
+  updateKnownStat();
+  startSession();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('studyArea').classList.remove('active');
+  document.getElementById('gridArea').classList.remove('active');
+  document.getElementById('completeScreen').classList.remove('active');
+
+  if (tab === 'study') {
+    document.getElementById('studyArea').classList.add('active');
+  } else {
+    document.getElementById('gridArea').classList.add('active');
+    renderGrid();
+  }
+}
+
+function renderGrid() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const container = document.getElementById('vocabGrid');
+  container.innerHTML = '';
+  vocab.filter(v => !q || v.term.toLowerCase().includes(q) || v.def.toLowerCase().includes(q))
+    .forEach(v => {
+      const d = document.createElement('div');
+      d.className = 'grid-card' + (progress[v.term] === true ? ' known' : progress[v.term] === false ? ' unknown' : '');
+      d.innerHTML = `<div class="grid-term">${v.term}</div><div class="grid-def">${v.def}</div><div class="grid-cat">${v.cat}</div>`;
+      container.appendChild(d);
+    });
+}
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (document.getElementById('studyArea').classList.contains('active')) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
+    if (e.key === 'ArrowRight') nextCard();
+    if (e.key === 'ArrowLeft') prevCard();
+    if (isFlipped) {
+      if (e.key === '1') markCard(true);
+      if (e.key === '2') markCard(false);
+    }
+  }
+});
+
+// Init
+populateFilters();
+document.getElementById('totalCount').textContent = `— ${vocab.length} terms loaded`;
+applyFilters();
+updateKnownStat();
+</script>
+</body>
+</html>
